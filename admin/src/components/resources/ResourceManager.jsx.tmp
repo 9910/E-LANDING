@@ -1,0 +1,419 @@
+import { useEffect, useMemo, useState } from 'react';
+import { RemoveScroll } from 'react-remove-scroll';
+import { createRecord, deleteRecord, getRecords, updateRecord } from '../../services/api';
+
+const buildInitialState = (fields) =>
+  fields.reduce((acc, field) => {
+    acc[field.name] = '';
+    return acc;
+  }, {});
+
+const ResourceManager = ({
+  resourceKey,
+  label,
+  description,
+  fields,
+  adminKey,
+  uploadHandlers = {},
+  resolveAssetPath = (value) => value
+}) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState(() => buildInitialState(fields));
+  const [editingId, setEditingId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [uploadingField, setUploadingField] = useState('');
+  const [filters, setFilters] = useState({
+    search: '',
+    start: 1,
+    end: '',
+    from: '',
+    to: ''
+  });
+  const [showModal, setShowModal] = useState(false);
+  const [showDisplayModal, setShowDisplayModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const placeholderText = useMemo(
+    () =>
+      fields
+        .map((field) => `${field.label}${field.required ? '*' : ''}`)
+        .join(', '),
+    [fields]
+  );
+
+  const searchableFields = useMemo(() => fields.filter((field) => field.type === 'text' || field.type === 'textarea').map((field) => field.name), [fields]);
+
+  const loadItems = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await getRecords(resourceKey, adminKey);
+      setItems(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
+  };
+
+  const filteredItems = useMemo(() => {
+    let data = [...items];
+    if (filters.search.trim()) {
+      const term = filters.search.trim().toLowerCase();
+      data = data.filter((item) =>
+        searchableFields.some((field) => String(item[field] || '').toLowerCase().includes(term))
+      );
+    }
+
+    if (filters.from) {
+      const fromDate = new Date(filters.from);
+      data = data.filter((item) => new Date(item.updatedAt || item.createdAt) >= fromDate);
+    }
+
+    if (filters.to) {
+      const toDate = new Date(filters.to);
+      data = data.filter((item) => new Date(item.updatedAt || item.createdAt) <= toDate);
+    }
+
+    const startIndex = Number.parseInt(filters.start, 10);
+    const endIndex = Number.parseInt(filters.end, 10);
+    const hasStart = !Number.isNaN(startIndex) && startIndex > 0;
+    const hasEnd = !Number.isNaN(endIndex) && endIndex > 0;
+    if (hasStart || hasEnd) {
+      const startPos = hasStart ? startIndex - 1 : 0;
+      const endPos = hasEnd ? endIndex : data.length;
+      data = data.slice(startPos, endPos);
+    }
+
+    return data;
+  }, [items, filters, searchableFields]);
+
+  const ITEMS_PER_PAGE = 10;
+  const paginatedItems = useMemo(() => {
+    const page = Math.max(1, currentPage);
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredItems.slice(start, end);
+  }, [filteredItems, currentPage]);
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+
+  const formatDate = (value) => {
+    if (!value) return 'â€”';
+    return new Date(value).toLocaleString();
+  };
+
+  useEffect(() => {
+    loadItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resourceKey, adminKey]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData(buildInitialState(fields));
+    setEditingId('');
+  };
+
+  const openModal = () => setShowModal(true);
+  const closeModal = () => {
+    setShowModal(false);
+    resetForm();
+  };
+
+  const openDisplayModal = () => {
+    setCurrentPage(1);
+    setShowDisplayModal(true);
+  };
+
+  const closeDisplayModal = () => setShowDisplayModal(false);
+
+  const handleAddNew = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    const mapped = {};
+    fields.forEach((field) => {
+      mapped[field.name] = item[field.name] || '';
+    });
+    setFormData(mapped);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this entry?')) return;
+    try {
+      await deleteRecord(resourceKey, id, adminKey);
+      await loadItems();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      if (editingId) {
+        await updateRecord(resourceKey, editingId, formData, adminKey);
+      } else {
+        await createRecord(resourceKey, formData, adminKey);
+      }
+      resetForm();
+      setShowModal(false);
+      await loadItems();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (fieldName, file) => {
+    if (!file || !uploadHandlers[fieldName]) {
+      return;
+    }
+    setUploadingField(fieldName);
+    setError('');
+    try {
+      const { path } = await uploadHandlers[fieldName](file);
+      setFormData((prev) => ({ ...prev, [fieldName]: path }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingField('');
+    }
+  };
+
+  return (
+    <section className="resource" id={`resource-${resourceKey}`}>
+        <div className="resource__header">
+          <div>
+            <p className="resource__eyebrow">{resourceKey}</p>
+            <h2>{label}</h2>
+            <p>{description}</p>
+          </div>
+          <div className="resource__header-actions">
+            <button type="button" className="btn btn--primary" onClick={handleAddNew}>
+              Add Entry
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={openDisplayModal} disabled={loading}>
+              Display
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={loadItems} disabled={loading}>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+      {error && <p className="form-status form-status--error">{error}</p>}
+
+      <div className="resource__body">
+        <div className="resource__filters">
+          <label>
+            <span>Filter by name</span>
+            <input
+              type="text"
+              name="search"
+              value={filters.search}
+              onChange={handleFilterChange}
+              placeholder="Search by name or title"
+            />
+          </label>
+          <label>
+            <span>Updated from</span>
+            <input type="date" name="from" value={filters.from} onChange={handleFilterChange} />
+          </label>
+          <label>
+            <span>Updated to</span>
+            <input type="date" name="to" value={filters.to} onChange={handleFilterChange} />
+          </label>
+          <label>
+            <span>Start #</span>
+            <input type="number" min="1" name="start" value={filters.start} onChange={handleFilterChange} />
+          </label>
+          <label>
+            <span>End #</span>
+            <input type="number" min="1" name="end" value={filters.end} onChange={handleFilterChange} />
+          </label>
+        </div>
+
+        <p className="resource__hint">
+          Use the <strong>Display</strong> button to review filtered entries. Only 10 rows are shown per page inside the popup.
+        </p>
+      </div>
+
+      {showDisplayModal && (
+        <RemoveScroll>
+          <div className="resource-modal" role="dialog" aria-modal="true">
+            <div className="resource-modal__backdrop" onClick={closeDisplayModal} />
+            <div className="resource-modal__content resource-modal__content--wide">
+            <div className="resource-modal__header">
+              <h3>
+                {label} - Page {currentPage} of {totalPages}
+              </h3>
+              <button type="button" className="resource-modal__close" onClick={closeDisplayModal} aria-label="Close list">
+                &times;
+              </button>
+            </div>
+            <div className="resource__list">
+              {loading ? (
+                <p>Loading...</p>
+              ) : paginatedItems.length === 0 ? (
+                <p>No entries matched the filters.</p>
+              ) : (
+                paginatedItems.map((item) => (
+                  <article key={item._id} className="resource-card">
+                    <div>
+                      {fields.map((field) => (
+                        <div
+                          key={field.name}
+                          className={`resource-card__row ${field.type === 'file' ? 'resource-card__row--media' : ''}`}
+                        >
+                          <strong>{field.label}:</strong>
+                          {field.type === 'file' ? (
+                            item[field.name] ? (
+                              <div className="resource-card__thumbnail">
+                                <img src={resolveAssetPath(item[field.name])} alt={`${field.label}`} />
+                              </div>
+                            ) : (
+                              <span>â€”</span>
+                            )
+                          ) : (
+                            <span>{item[field.name] || 'â€”'}</span>
+                          )}
+                        </div>
+                      ))}
+                      <p className="resource-card__meta">
+                        Last updated: <span>{formatDate(item.updatedAt || item.createdAt)}</span>
+                      </p>
+                    </div>
+                    <div className="resource-card__actions">
+                      <button type="button" className="btn btn--ghost" onClick={() => handleEdit(item)}>
+                        Edit
+                      </button>
+                      <button type="button" className="btn btn--secondary" onClick={() => handleDelete(item._id)}>
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="resource-modal__pagination">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </RemoveScroll>
+      )}
+
+      {showModal && (
+        <RemoveScroll>
+          <div className="resource-modal" role="dialog" aria-modal="true">
+            <div className="resource-modal__backdrop" onClick={closeModal} />
+            <div className="resource-modal__content">
+            <div className="resource-modal__header">
+              <h3>{editingId ? 'Edit Entry' : `Add ${label}`}</h3>
+              <button type="button" className="resource-modal__close" onClick={closeModal} aria-label="Close form">
+                &times;
+              </button>
+            </div>
+            <form className="resource__form" onSubmit={handleSubmit}>
+              {fields.map((field) => (
+                <label key={field.name} className={`resource__field ${field.type === 'file' ? 'resource__field--file' : ''}`}>
+                  {field.type !== 'file' && (
+                    <span>
+                      {field.label}
+                      {field.required ? '*' : ''}
+                    </span>
+                  )}
+                  {field.type === 'textarea' ? (
+                    <textarea
+                      name={field.name}
+                      rows="3"
+                      value={formData[field.name]}
+                      onChange={handleChange}
+                      required={field.required}
+                      placeholder={placeholderText}
+                    />
+                  ) : field.type === 'file' ? (
+                    <>
+                      {formData[field.name] && (
+                        <div className="resource__image-preview">
+                          <img src={resolveAssetPath(formData[field.name])} alt={`${field.label} preview`} />
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => handleFileUpload(field.name, event.target.files?.[0])}
+                      />
+                      {uploadingField === field.name && <small>Uploading...</small>}
+                    </>
+                  ) : (
+                    <input
+                      type={field.type}
+                      name={field.name}
+                      value={formData[field.name]}
+                      onChange={handleChange}
+                      required={field.required}
+                      placeholder={placeholderText}
+                    />
+                  )}
+                </label>
+              ))}
+
+              <div className="resource__actions">
+                <button type="submit" className="btn btn--primary" disabled={saving}>
+                  {saving ? 'Saving...' : editingId ? 'Update Entry' : 'Create Entry'}
+                </button>
+                <button type="button" className="btn btn--ghost" onClick={closeModal}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      </section>
+    </RemoveScroll>
+  );
+};
+
+export default ResourceManager;
+
+
+
+
+
+
+

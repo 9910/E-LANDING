@@ -1,0 +1,10 @@
+﻿<svg xmlns='http://www.w3.org/2000/svg' width='600' height='360' viewBox='0 0 600 360'>
+  <defs>
+    <linearGradient id='grad-digital-marketing' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#0f172a'/>
+      <stop offset='100%' stop-color='#2563eb'/>
+    </linearGradient>
+  </defs>
+  <rect width='600' height='360' rx='24' fill='url(#grad-digital-marketing)'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='36' fill='#e2e8f0'> $args[0].Value.ToUpper() igital  $args[0].Value.ToUpper() arketing</text>
+</svg>
