@@ -1,3 +1,7 @@
 {
-    "geminicodeassist.project": "stately-adapter-xj9jv"
+    "geminicodeassist.project": "stately-adapter-xj9jv",
+    "sonarlint.connectedMode.project": {
+        "connectionId": "9910",
+        "projectKey": "9910_E-LANDING"
+    }
 }

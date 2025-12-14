@@ -4,7 +4,7 @@ import Dashboard from './pages/Dashboard';
 import ResourceDisplayPage from './pages/ResourceDisplayPage';
 import ResourceFormPage from './pages/ResourceFormPage';
 import LoginPanel from './components/LoginPanel';
-import { uploadProgramImage } from './services/api';
+import { uploadHomeImage, uploadProgramImage } from './services/api';
 
 const App = () => {
   const [adminKey, setAdminKey] = useState(() => window.localStorage.getItem('edu-admin-key') || '');
@@ -26,6 +26,13 @@ const App = () => {
   const uploadHandlers = {
     programs: {
       image: (file) => uploadProgramImage(file, adminKey)
+    },
+    home: {
+      heroImage: (file) => uploadHomeImage(file, adminKey),
+      heroImage1: (file) => uploadHomeImage(file, adminKey),
+      heroImage2: (file) => uploadHomeImage(file, adminKey),
+      heroImage3: (file) => uploadHomeImage(file, adminKey),
+      heroImage4: (file) => uploadHomeImage(file, adminKey)
     }
   };
 

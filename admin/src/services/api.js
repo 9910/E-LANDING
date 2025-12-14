@@ -101,3 +101,23 @@ export const uploadProgramImage = async (file, adminKey) => {
     throw new Error(message);
   }
 };
+
+export const uploadHomeImage = async (file, adminKey) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const { data } = await apiClient.post('/admin/home/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'x-admin-key': adminKey
+      }
+    });
+    return data;
+  } catch (error) {
+    if (error.response?.status === 401) {
+      window.localStorage.removeItem('edu-admin-key');
+    }
+    const message = error.response?.data?.message || 'Image upload failed.';
+    throw new Error(message);
+  }
+};

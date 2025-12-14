@@ -3,7 +3,6 @@ const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -13,7 +12,7 @@ if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }
 
-connectDB();
+console.log('Starting API in static content mode (no database connection).');
 
 app.use(cors());
 app.use(express.json());
@@ -24,13 +23,15 @@ app.use('/api/blogs', require('./routes/blogs'));
 app.use('/api/content', require('./routes/content'));
 app.use('/api/admin', require('./routes/admin'));
 
-if (process.env.NODE_ENV === 'production') {
-  const clientPath = path.join(__dirname, '../client/dist');
+// Serve frontend build whenever it exists (works in dev and prod)
+const clientPath = path.join(__dirname, '../client/dist');
+if (fs.existsSync(clientPath)) {
   app.use(express.static(clientPath));
-
   app.get('*', (_req, res) => {
     res.sendFile(path.join(clientPath, 'index.html'));
   });
+} else {
+  console.warn('client/dist not found. Run the client build to serve the frontend from the backend.');
 }
 
 const PORT = process.env.PORT || 5000;

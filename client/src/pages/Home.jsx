@@ -1,8 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
-import StatsStrip from '../components/StatsStrip';
 import VideoSection from '../components/VideoSection';
 import PackagesSection from '../components/PackagesSection';
 import LeadForm from '../components/LeadForm';
@@ -12,12 +11,15 @@ import BlogPreviewList from '../components/BlogPreviewList';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
 import AnimatedSection from '../components/AnimatedSection';
-import BackgroundOrbs from '../components/BackgroundOrbs';
+import StatsBand from '../components/StatsBand';
+import FeatureStrip from '../components/FeatureStrip';
+import AboutAcademy from '../components/AboutAcademy';
 
 const Home = () => {
   const packagesRef = useRef(null);
   const contactRef = useRef(null);
   const location = useLocation();
+  const [heroGallery, setHeroGallery] = useState([]);
 
   const scrollToSection = (target) => {
     const sectionMap = {
@@ -44,36 +46,39 @@ const Home = () => {
   return (
     <>
       <Navbar onNavigate={scrollToSection} />
-      <div className="relative">
-        <BackgroundOrbs />
-        <main className="relative mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-20 pt-10 lg:px-6">
-          <HeroSection onEnquireClick={() => scrollToSection('contact')} />
-          <AnimatedSection>
-            <StatsStrip />
-          </AnimatedSection>
-          <AnimatedSection>
-            <VideoSection />
-          </AnimatedSection>
-          <AnimatedSection ref={packagesRef}>
-            <PackagesSection onEnrollClick={() => scrollToSection('contact')} />
-          </AnimatedSection>
-          <AnimatedSection ref={contactRef}>
-            <LeadForm />
-          </AnimatedSection>
-          <AnimatedSection>
-            <HighlightsSection />
-          </AnimatedSection>
-          <AnimatedSection>
-            <TestimonialsSection />
-          </AnimatedSection>
-          <AnimatedSection>
-            <BlogPreviewList />
-          </AnimatedSection>
-          <AnimatedSection>
-            <CTASection onCta={() => scrollToSection('contact')} />
-          </AnimatedSection>
-        </main>
-      </div>
+      <main className="page-shell">
+        <HeroSection onEnquireClick={() => scrollToSection('contact')} onGalleryReady={setHeroGallery} />
+        <AnimatedSection>
+          <StatsBand />
+        </AnimatedSection>
+        <AnimatedSection>
+          <FeatureStrip />
+        </AnimatedSection>
+        <AnimatedSection>
+          <AboutAcademy heroGallery={heroGallery} />
+        </AnimatedSection>
+        <AnimatedSection>
+          <VideoSection />
+        </AnimatedSection>
+        <AnimatedSection ref={packagesRef}>
+          <PackagesSection onEnrollClick={() => scrollToSection('contact')} />
+        </AnimatedSection>
+        <AnimatedSection ref={contactRef}>
+          <LeadForm />
+        </AnimatedSection>
+        <AnimatedSection>
+          <HighlightsSection />
+        </AnimatedSection>
+        <AnimatedSection>
+          <TestimonialsSection />
+        </AnimatedSection>
+        <AnimatedSection>
+          <BlogPreviewList />
+        </AnimatedSection>
+        <AnimatedSection>
+          <CTASection onCta={() => scrollToSection('contact')} />
+        </AnimatedSection>
+      </main>
       <Footer />
     </>
   );

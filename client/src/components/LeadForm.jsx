@@ -53,11 +53,12 @@ const LeadForm = () => {
 
   return (
     <section
-      className="grid gap-10 rounded-[32px] border border-white/70 bg-white/90 p-8 shadow-soft lg:grid-cols-[0.9fr_1.1fr] lg:p-12"
+      className="panel grid gap-10 rounded-[32px] p-8 lg:grid-cols-[0.9fr_1.1fr] lg:p-12"
       id="contact"
     >
-      <div className="space-y-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Speak with admissions</p>
+      <span className="gradient-ring" aria-hidden="true" />
+      <div className="panel-content space-y-5">
+        <p className="section-label">Speak with admissions</p>
         <h2 className="font-display text-3xl text-ink sm:text-4xl">Your future begins here</h2>
         <p className="text-lg text-slate-600">
           Tell us about your goals and we&rsquo;ll craft a personalized learning roadmap, scholarship advice, and a start date
@@ -78,7 +79,7 @@ const LeadForm = () => {
           </li>
         </ul>
       </div>
-      <form className="grid gap-4 rounded-[28px] border border-slate-100 bg-white/90 p-6 shadow-card md:grid-cols-2" onSubmit={handleSubmit} noValidate>
+      <form className="panel-content grid gap-4 rounded-[28px] border border-white/80 bg-white/90 p-6 shadow-card md:grid-cols-2" onSubmit={handleSubmit} noValidate>
         <div>
           <label htmlFor="name" className="text-sm font-semibold text-slate-600">
             Name*
@@ -138,8 +139,8 @@ const LeadForm = () => {
           <p
             className={`md:col-span-2 rounded-2xl border px-4 py-3 text-sm ${
               status.type === 'error'
-                ? 'border-red-100 bg-red-50 text-red-600'
-                : 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                ? 'border-red-100 bg-red-50/90 text-red-600'
+                : 'border-emerald-100 bg-emerald-50/90 text-emerald-700'
             }`}
           >
             {status.message}
@@ -148,7 +149,7 @@ const LeadForm = () => {
 
         <button
           type="submit"
-          className="md:col-span-2 inline-flex items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-dark disabled:opacity-60"
+          className="md:col-span-2 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand/80 px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:scale-[1.01] disabled:opacity-60"
           disabled={submitting}
         >
           {submitting ? 'Submitting...' : 'Submit Enquiry'}

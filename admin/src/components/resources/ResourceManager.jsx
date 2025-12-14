@@ -7,6 +7,10 @@ const ResourceManager = ({ resourceKey, label, description, fields }) => {
     navigate(`/resource/${resourceKey}/display`);
   };
 
+  const handleEdit = () => {
+    navigate(`/resource/${resourceKey}/display`, { state: { focus: 'edit' } });
+  };
+
   const handleAdd = () => {
     navigate(`/resource/${resourceKey}/new`);
   };
@@ -22,6 +26,9 @@ const ResourceManager = ({ resourceKey, label, description, fields }) => {
         <div className="resource__header-actions">
           <button type="button" className="btn btn--primary" onClick={handleAdd}>
             Add Entry
+          </button>
+          <button type="button" className="btn btn--secondary" onClick={handleEdit}>
+            Edit Entries
           </button>
           <button type="button" className="btn btn--ghost" onClick={handleView}>
             Display

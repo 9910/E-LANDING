@@ -54,7 +54,7 @@ const Programs = () => {
         )}
 
         {!loading && !error && (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {programs.map((program) => (
               <article
                 key={program._id || program.name}
@@ -78,13 +78,21 @@ const Programs = () => {
                   <li className="rounded-full bg-slate-100 px-4 py-1">{program.duration}</li>
                   <li className="rounded-full bg-slate-100 px-4 py-1">{program.price}</li>
                 </ul>
-                <Link
-                  to="/"
-                  state={{ scrollTo: 'contact' }}
-                  className="mt-auto inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand"
-                >
-                  Speak to admissions
-                </Link>
+                <div className="mt-auto flex flex-col gap-2">
+                  <Link
+                    to={`/programs/${program._id}`}
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand"
+                  >
+                    Know more
+                  </Link>
+                  <Link
+                    to="/"
+                    state={{ scrollTo: 'contact' }}
+                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand/80 px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:scale-[1.01]"
+                  >
+                    Speak to admissions
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

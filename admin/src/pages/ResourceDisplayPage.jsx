@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getResourceByKey } from '../config/resources';
 import { deleteRecord, getRecords, buildAssetUrl } from '../services/api';
 import ResourceManager from '../components/resources/ResourceManager';
 import AdminLayout from '../components/AdminLayout';
 
+const filterConfig = [
+  { name: 'search', label: 'Filter by name', type: 'text', placeholder: 'Search' },
+  { name: 'from', label: 'Updated from', type: 'date' },
+  { name: 'to', label: 'Updated to', type: 'date' },
+  { name: 'start', label: 'Start #', type: 'number', inputProps: { min: 1 } },
+  { name: 'end', label: 'End #', type: 'number', inputProps: { min: 1 } }
+];
+
 const ResourceDisplayPage = ({ adminKey, onLogout }) => {
   const { resourceKey } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const editIntent = location.state?.focus === 'edit';
   const resource = getResourceByKey(resourceKey);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +43,14 @@ const ResourceDisplayPage = ({ adminKey, onLogout }) => {
     loadItems();
   }, [resourceKey, resource, adminKey]);
 
-  const searchableFields = useMemo(() => resource?.fields.filter((field) => field.type !== 'file').map((field) => field.name) || [], [resource]);
+  const searchableFields = useMemo(() => {
+    if (!resource?.fields) {
+      return [];
+    }
+    return resource.fields
+      .filter((field) => field.type !== 'file' && field.type !== 'file-multi')
+      .map((field) => field.name);
+  }, [resource]);
 
   const filteredItems = useMemo(() => {
     let data = [...items];
@@ -75,8 +93,40 @@ const ResourceDisplayPage = ({ adminKey, onLogout }) => {
     setCurrentPage(1);
   };
 
+  const EMPTY_PLACEHOLDER = '\u2014';
+
+  const renderFieldValue = (field, itemRecord) => {
+    const value = itemRecord[field.name];
+    if (field.type === 'file') {
+      if (value) {
+        return (
+          <div className="resource-card__thumbnail">
+            <img src={buildAssetUrl(value)} alt={`${field.label}`} />
+          </div>
+        );
+      }
+      return <span>{EMPTY_PLACEHOLDER}</span>;
+    }
+    if (field.type === 'file-multi') {
+      if (Array.isArray(value) && value.length > 0) {
+        return (
+          <div className="resource-card__gallery">
+            {value.map((path, idx) => (
+              <div key={`${path}-${idx}`} className="resource-card__thumbnail resource-card__thumbnail--small">
+                <img src={buildAssetUrl(path)} alt={`${field.label} ${idx + 1}`} />
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return <span>{EMPTY_PLACEHOLDER}</span>;
+    }
+    return <span>{value || EMPTY_PLACEHOLDER}</span>;
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this entry?')) return;
+    const canPrompt = typeof globalThis !== 'undefined' && typeof globalThis.confirm === 'function';
+    if (!canPrompt || !globalThis.confirm('Delete this entry?')) return;
     try {
       await deleteRecord(resource.resourceKey, id, adminKey);
       setItems((prev) => prev.filter((item) => item._id !== id));
@@ -93,6 +143,36 @@ const ResourceDisplayPage = ({ adminKey, onLogout }) => {
     );
   }
 
+  const renderResourceList = () => {
+    if (loading) {
+      return <p>Loading...</p>;
+    }
+    if (paginatedItems.length === 0) {
+      return <p>No entries matched the filters.</p>;
+    }
+    return paginatedItems.map((item) => (
+      <article key={item._id} className="resource-card">
+        <div>
+          {resource.fields.map((field) => (
+            <div key={field.name} className={`resource-card__row ${field.type === 'file' ? 'resource-card__row--media' : ''}`}>
+              <strong>{field.label}:</strong>
+              {renderFieldValue(field, item)}
+            </div>
+          ))}
+          <p className="resource-card__meta">Last updated: <span>{new Date(item.updatedAt || item.createdAt).toLocaleString()}</span></p>
+        </div>
+        <div className="resource-card__actions">
+          <button type="button" className="btn btn--ghost" onClick={() => navigate(`/resource/${resource.resourceKey}/edit/${item._id}`, { state: { entry: item } })}>
+            Edit
+          </button>
+          <button type="button" className="btn btn--secondary" onClick={() => handleDelete(item._id)}>
+            Delete
+          </button>
+        </div>
+      </article>
+    ));
+  };
+
   return (
     <AdminLayout onLogout={onLogout}>
       <div className="resource-page">
@@ -103,68 +183,26 @@ const ResourceDisplayPage = ({ adminKey, onLogout }) => {
           </div>
 
           {error && <p className="form-status form-status--error">{error}</p>}
+          {editIntent && <p className="resource__hint">Select an entry below and use Edit to update it.</p>}
 
           <div className="resource__filters">
-            <label>
-              <span>Filter by name</span>
-              <input name="search" value={filters.search} onChange={handleFilterChange} placeholder="Search" />
-            </label>
-            <label>
-              <span>Updated from</span>
-              <input type="date" name="from" value={filters.from} onChange={handleFilterChange} />
-            </label>
-            <label>
-              <span>Updated to</span>
-              <input type="date" name="to" value={filters.to} onChange={handleFilterChange} />
-            </label>
-            <label>
-              <span>Start #</span>
-              <input type="number" min="1" name="start" value={filters.start} onChange={handleFilterChange} />
-            </label>
-            <label>
-              <span>End #</span>
-              <input type="number" min="1" name="end" value={filters.end} onChange={handleFilterChange} />
-            </label>
+            {filterConfig.map(({ name, label, type, placeholder, inputProps }) => (
+              <label key={name}>
+                <span>{label}</span>
+                <input
+                  type={type}
+                  name={name}
+                  value={filters[name] ?? ''}
+                  onChange={handleFilterChange}
+                  placeholder={placeholder}
+                  {...(inputProps || {})}
+                />
+              </label>
+            ))}
           </div>
 
           <div className="resource__list">
-            {loading ? (
-              <p>Loading...</p>
-            ) : paginatedItems.length === 0 ? (
-              <p>No entries matched the filters.</p>
-            ) : (
-              paginatedItems.map((item) => (
-                <article key={item._id} className="resource-card">
-                  <div>
-                    {resource.fields.map((field) => (
-                      <div key={field.name} className={`resource-card__row ${field.type === 'file' ? 'resource-card__row--media' : ''}`}>
-                        <strong>{field.label}:</strong>
-                        {field.type === 'file' ? (
-                          item[field.name] ? (
-                            <div className="resource-card__thumbnail">
-                              <img src={buildAssetUrl(item[field.name])} alt={`${field.label}`} />
-                            </div>
-                          ) : (
-                            <span>—</span>
-                          )
-                        ) : (
-                          <span>{item[field.name] || '—'}</span>
-                        )}
-                      </div>
-                    ))}
-                    <p className="resource-card__meta">Last updated: <span>{new Date(item.updatedAt || item.createdAt).toLocaleString()}</span></p>
-                  </div>
-                  <div className="resource-card__actions">
-                    <button type="button" className="btn btn--ghost" onClick={() => navigate(`/resource/${resource.resourceKey}/edit/${item._id}`, { state: { entry: item } })}>
-                      Edit
-                    </button>
-                    <button type="button" className="btn btn--secondary" onClick={() => handleDelete(item._id)}>
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              ))
-            )}
+            {renderResourceList()}
           </div>
 
           <div className="resource-modal__pagination">
@@ -179,6 +217,11 @@ const ResourceDisplayPage = ({ adminKey, onLogout }) => {
       </div>
     </AdminLayout>
   );
+};
+
+ResourceDisplayPage.propTypes = {
+  adminKey: PropTypes.string.isRequired,
+  onLogout: PropTypes.func.isRequired
 };
 
 export default ResourceDisplayPage;

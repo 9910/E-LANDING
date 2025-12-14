@@ -9,9 +9,9 @@ export default {
       },
       colors: {
         brand: {
-          DEFAULT: '#5A54E5',
-          dark: '#4035d4',
-          light: '#EEF2FF',
+          DEFAULT: '#e21837',
+          dark: '#b5122c',
+          light: '#ffe6ec',
         },
         accent: {
           DEFAULT: '#0EA5E9',

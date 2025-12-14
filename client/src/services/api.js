@@ -53,6 +53,8 @@ export const submitLead = (leadData) => handleRequest(apiClient.post('/leads', l
 export const getBlogs = () => handleRequest(apiClient.get('/blogs'));
 export const getBlogById = (id) => handleRequest(apiClient.get(`/blogs/${id}`));
 export const getPrograms = (params = {}) => handleRequest(apiClient.get('/content/programs', { params }));
+export const getProgramById = (id) => handleRequest(apiClient.get(`/content/programs/${id}`));
 export const getHighlights = () => handleRequest(apiClient.get('/content/highlights'));
-export const getStats = () => handleRequest(apiClient.get('/content/stats'));
 export const getTestimonials = () => handleRequest(apiClient.get('/content/testimonials'));
+export const getHomeContent = () => handleRequest(apiClient.get('/content/home'));
+export const getHomeVideo = () => handleRequest(apiClient.get('/content/home-video'));

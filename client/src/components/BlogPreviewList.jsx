@@ -33,10 +33,11 @@ const BlogPreviewList = () => {
   }, []);
 
   return (
-    <section className="flex flex-col gap-6 rounded-[32px] border border-white/70 bg-white/90 p-8 shadow-soft lg:p-12">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <section className="panel flex flex-col gap-6 rounded-[32px] p-8 lg:p-12">
+      <span className="gradient-ring" aria-hidden="true" />
+      <div className="panel-content flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Latest from our blog</p>
+          <p className="section-label">Latest from our blog</p>
           <h2 className="font-display text-3xl text-ink sm:text-4xl">Insights for learners &amp; teams</h2>
         </div>
         <Link
@@ -47,15 +48,15 @@ const BlogPreviewList = () => {
         </Link>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading posts...</p>}
+      {loading && <p className="panel-content text-sm text-slate-500">Loading posts...</p>}
       {error && (
-        <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-red-600">
+        <p className="panel-content rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-red-600">
           {error}
         </p>
       )}
-      {!loading && !error && posts.length === 0 && <p className="text-sm text-slate-500">No blog posts yet. Check back soon.</p>}
+      {!loading && !error && posts.length === 0 && <p className="panel-content text-sm text-slate-500">No blog posts yet. Check back soon.</p>}
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="panel-content grid gap-6 md:grid-cols-3">
         {posts.map((post) => (
           <BlogCard key={post._id} post={post} />
         ))}
